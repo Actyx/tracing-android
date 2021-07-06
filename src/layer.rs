@@ -55,10 +55,8 @@ where
     fn on_event(&self, event: &Event, ctx: Context<S>) {
         let mut writer = AndroidWriter::new(event.metadata().level(), &self.tag); //PlatformLogWriter::new(event.metadata().level(), &self.tag);
 
-        // add the module path
-        if let Some(module) = event.metadata().module_path() {
-            let _ = write!(&mut writer, "{}: ", module);
-        }
+        // add the target
+        let _ = write!(&mut writer, "{}: ", event.metadata().target());
 
         // Record span fields
         let maybe_scope = ctx
@@ -75,7 +73,8 @@ where
         }
 
         // Record event fields
-        put_metadata(&mut writer, event.metadata(), None);
+        // TODO: make thius configurable
+        // put_metadata(&mut writer, event.metadata(), None);
         event.record(&mut writer);
     }
 }
@@ -101,7 +100,12 @@ impl Visit for SpanVisitor<'_> {
 
 impl Visit for AndroidWriter<'_> {
     fn record_debug(&mut self, field: &Field, value: &dyn fmt::Debug) {
-        let _ = write_debug(self, field.name(), value);
+        if field.name() == "message" {
+            // omit message field value
+            let _ = write!(self, "{:?}", value);
+        } else {
+            let _ = write_debug(self, field.name(), value);
+        }
     }
 }
 
@@ -116,7 +120,7 @@ fn put_metadata(mut buf: impl io::Write, meta: &Metadata, span: Option<usize>) {
 }
 
 fn write_debug(mut buf: impl io::Write, name: &str, value: &dyn fmt::Debug) {
-    let _ = writeln!(&mut buf, "{}: {:?}", name, value);
+    let _ = write!(&mut buf, "{}={:?}", name, value);
 }
 
 fn write_name_with_value<T>(mut buf: impl io::Write, name: &str, value: T, span: Option<usize>)
@@ -126,12 +130,12 @@ where
     if let Some(n) = span {
         let _ = write!(&mut buf, "s{}_", n);
     }
-    let _ = writeln!(buf, "{}: {}", name, value);
+    let _ = write!(buf, "{}={}", name, value);
 }
 
 fn write_value<T>(mut buf: impl io::Write, value: T)
 where
     T: Display,
 {
-    let _ = writeln!(&mut buf, "{}", value);
+    let _ = write!(&mut buf, "{}", value);
 }
