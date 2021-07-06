@@ -220,7 +220,7 @@ dependencies = [
 
 [[package]]
 name = "tracing-android"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "android_log-sys",
  "tracing",
