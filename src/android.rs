@@ -77,17 +77,13 @@ struct LogcatWriter<'a> {
 impl<'a> LogcatWriter<'a> {
     fn log(&self, msg: &[u8]) -> io::Result<()> {
         let msg = CString::new(msg.to_vec())?;
-        android_log(self.priority, &self.tag, &msg);
+        android_log(self.priority, self.tag, &msg);
         Ok(())
     }
 }
 impl<'a> io::Write for LogcatWriter<'a> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let written = if buf.len() > LOGGING_MSG_MAX_LEN {
-            LOGGING_MSG_MAX_LEN - buf.len()
-        } else {
-            buf.len()
-        };
+        let written = buf.len().min(LOGGING_MSG_MAX_LEN);
         self.log(&buf[..written])?;
         Ok(written)
     }
